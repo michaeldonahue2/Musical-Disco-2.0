@@ -23,6 +23,7 @@ jobs:
       - name: Build site
         env:
           SKIMLINKS_PID: ${{ secrets.SKIMLINKS_PID }}
+    
           BEEHIIV_URL: ${{ secrets.BEEHIIV_URL }}
           ZAPIER_WEBHOOK_URL: ${{ secrets.ZAPIER_WEBHOOK_URL }}
         run: npm run build
