@@ -1,0 +1,15 @@
+{
+  "feeds": [
+    "https://9to5toys.com/feed/",
+    "https://www.theverge.com/deals/rss/index.xml",
+    "https://www.gamespot.com/feeds/deals/",
+    "https://www.xda-developers.com/tag/deals/rss/"
+  ],
+  "daily_posts": 8,
+  "site": {
+    "title": "Daily Deals & Finds",
+    "tagline": "Fresh finds, quick reads, auto-affiliated.",
+    "url": "https://YOURDOMAIN.com",
+    "brand": "Daily Finds"
+  }
+}
