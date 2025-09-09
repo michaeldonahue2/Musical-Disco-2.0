@@ -23,7 +23,6 @@ jobs:
       - name: Build site
         env:
           SKIMLINKS_PID: ${{ secrets.SKIMLINKS_PID }}
-    
           BEEHIIV_URL: ${{ secrets.BEEHIIV_URL }}
           ZAPIER_WEBHOOK_URL: ${{ secrets.ZAPIER_WEBHOOK_URL }}
         run: npm run build
@@ -33,8 +32,6 @@ jobs:
         with:
           path: dist
 
-
-
-  - name: Trigger Netlify deploy
-    if: ${{ secrets.NETLIFY_BUILD_HOOK_URL != '' }}
-    run: curl -sS -X POST "${{ secrets.NETLIFY_BUILD_HOOK_URL }}"
+      - name: Trigger Netlify deploy
+        if: ${{ secrets.NETLIFY_BUILD_HOOK_URL != '' }}
+        run: curl -sS -X POST "${{ secrets.NETLIFY_BUILD_HOOK_URL }}"
