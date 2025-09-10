@@ -1,0 +1,87 @@
+name: Build & Publish
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '5 13 * * *'  # 09:05 America/New_York
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm ci || npm install
+
+      - name: Build site
+        run: |
+          if [ -f package.json ]; then
+            if npm run | grep -q "build"; then
+              npm run build
+            else
+              echo "No build script found in package.json. Creating minimal dist/index.html so pipeline can proceed."
+              mkdir -p dist
+              cat > dist/index.html <<'HTML'
+<!doctype html><html><head><meta charset="utf-8"><title>Musical Disco</title></head><body><h1>Build placeholder</h1><p>If you see this, add a proper build step later.</p></body></html>
+HTML
+            fi
+          else
+            echo "No package.json. Creating minimal dist/index.html."
+            mkdir -p dist
+            echo "<!doctype html><html><body><h1>Musical Disco</h1></body></html>" > dist/index.html
+          fi
+
+      - name: Send newsletter payload to Zapier
+        if: ${{ secrets.ZAPIER_WEBHOOK_URL != '' }}
+        env:
+          ZAP_URL: ${{ secrets.ZAPIER_WEBHOOK_URL }}
+        run: |
+          sudo apt-get update -y >/dev/null 2>&1 || true
+          sudo apt-get install -y jq >/dev/null 2>&1 || true
+
+          # pick a likely index.html from common build folders
+          FILE=""
+          for f in dist/index.html out/index.html build/index.html public/index.html; do
+            if [ -f "$f" ]; then FILE="$f"; break; fi
+          done
+          if [ -z "$FILE" ]; then
+            echo "No index.html found in dist/out/build/public"; exit 1
+          fi
+
+          HTML_CONTENT="$(cat "$FILE")"
+          PAYLOAD="$(jq -nc \
+            --arg subject "Daily Picks" \
+            --arg preheader "Today's top finds" \
+            --arg html "$HTML_CONTENT" \
+            '{subject:$subject, preheader:$preheader, html:$html}')"
+
+          echo "Posting newsletter payload to Zapier..."
+          curl -sS -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$ZAP_URL"
+
+      - name: Upload artifact (site)
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: |
+            dist
+            out
+            build
+            public
+          if-no-files-found: warn
+
+      - name: Trigger Netlify build
+        if: ${{ secrets.NETLIFY_BUILD_HOOK_URL != '' }}
+        env:
+          NETLIFY_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
+        run: |
+          echo "Triggering Netlify via build hook..."
+          curl -sS -X POST "$NETLIFY_HOOK"
